@@ -1,8 +1,10 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
+import static java.util.Arrays.*;
 import static java.util.Arrays.copyOf;
 
 public class Board {
@@ -76,8 +78,21 @@ public class Board {
 
     // a board that is obtained by exchanging any pair of blocks
     public Board twin() {
-        final int[] twinBlocks = switchBlocks(0, 1);
+        List<Integer> excludedValues = new ArrayList<>();
+        excludedValues.add(0);
+        final int from = pickARandomNoEmptyBlock(excludedValues);
+        excludedValues.add(from);
+        final int to = pickARandomNoEmptyBlock(excludedValues);
+        final int[] twinBlocks = switchBlocks(from, to);
         return new Board(twinBlocks);
+    }
+
+    protected int pickARandomNoEmptyBlock(List<Integer> excludedValues) {
+        final OptionalInt first = stream(blocks)
+                .filter(b -> !excludedValues.contains(b))
+                .findFirst();
+        return first.getAsInt();
+
     }
 
     private int[] switchBlocks(int fromIdx, int toIdx) {
@@ -127,6 +142,7 @@ public class Board {
     // string representation of this board (in the output format specified below)
     public String toString() {
         StringBuilder sb = new StringBuilder();
+        sb.append(dimension).append(System.getProperty("line.separator"));
         for (int i = 0; i < blocks.length; i++) {
             sb.append(blocks[i]).append(" ");
             if (i % dimension == dimension - 1) sb.append(System.getProperty("line.separator"));

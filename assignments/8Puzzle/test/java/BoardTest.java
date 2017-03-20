@@ -48,4 +48,5 @@ public class BoardTest {
 
         neighbors.forEach(System.out::println);
     }
+
 }
