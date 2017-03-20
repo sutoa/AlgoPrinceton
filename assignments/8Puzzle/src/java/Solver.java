@@ -1,28 +1,25 @@
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.MinPQ;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 import static edu.princeton.cs.algs4.StdOut.println;
 
 public class Solver {
 
-    private Set<Board> processedBoards = new HashSet<>();
-    private Set<Board> twinProcessedBoards = new HashSet<>();
     private SearchNode lastNode;
     private boolean solvable = false;
-    private MinPQ<SearchNode> nodes = new MinPQ<>();
 
 
     public Solver(Board initial) {
+        MinPQ<SearchNode> nodes = new MinPQ<>();
         nodes.insert(new SearchNode(initial, null));
         MinPQ<SearchNode> twinNodes = new MinPQ<>();
         twinNodes.insert(new SearchNode(initial.twin(), null));
 
         while (true){
             lastNode = nodes.delMin();
+            Set<Board> processedBoards = new HashSet<>();
             processedBoards.add(lastNode.board);
             if(targetNode(lastNode)) {
                 solvable = true;
@@ -31,6 +28,7 @@ public class Solver {
             process(lastNode, nodes, processedBoards);
 
             final SearchNode twinNode = twinNodes.delMin();
+            Set<Board> twinProcessedBoards = new HashSet<>();
             twinProcessedBoards.add(twinNode.board);
             if(targetNode(twinNode)){
                 break;
@@ -40,10 +38,8 @@ public class Solver {
     }
 
     private void process(SearchNode node, MinPQ<SearchNode> nodes, Set<Board> processedBoards) {
-        final Iterator<Board> neighbors = node.board.neighbors().iterator();
-        while (neighbors.hasNext()){
-            final Board next = neighbors.next();
-            if(!processedBoards.contains(next))
+        for (Board next : node.board.neighbors()) {
+            if (!processedBoards.contains(next))
                 nodes.insert(new SearchNode(next, node));
             else
                 System.out.println("already processed " + next);
@@ -51,6 +47,7 @@ public class Solver {
     }
 
     private boolean targetNode(SearchNode node) {
+
         return node.board.hamming() == 0;
     }
 
@@ -61,12 +58,22 @@ public class Solver {
     }
 
     // sequence of boards in a shortest solution; null if unsolvable
-    private Board[] solution() {
-        return new Board[0];
+    protected Board[] solution() {
+        List<Board> boards = new ArrayList<>();
+        if(solvable){
+             while(lastNode != null){
+                 boards.add(lastNode.board);
+                 lastNode = lastNode.parent;
+             }
+        }
+        Collections.reverse(boards);
+        Board[] b = new Board[boards.size()];
+        boards.toArray(b);
+        return b;
     }
 
     public boolean isSolvable() {
-        return false;
+        return solvable;
     }
 
 
@@ -94,24 +101,4 @@ public class Solver {
         }
     }
 
-    protected class SearchNode implements Comparable<SearchNode>{
-        private final SearchNode parent;
-        private final int moveCount;
-        private final Board board;
-
-        SearchNode(Board board, SearchNode parent) {
-            this.board = board;
-            this.moveCount = parent == null ? 0 : parent.moveCount + 1;
-            this.parent = parent;
-        }
-
-        int priority(){
-            return board.manhattan() + moveCount;
-        }
-
-        @Override
-        public int compareTo(SearchNode o) {
-            return priority() - o.priority();
-        }
-    }
 }

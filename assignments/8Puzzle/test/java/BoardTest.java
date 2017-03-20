@@ -11,8 +11,6 @@ import static org.junit.Assert.assertNotEquals;
 public class BoardTest {
 
     private int[][] blocksInPosition = new int[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 0}};
-    private int[][] blocksInPositionNeighbor1 = new int[][]{{1, 2, 3}, {4, 5, 0}, {7, 8, 6}};
-    private int[][] blocksInPositionNeighbor2 = new int[][]{{1, 2, 3}, {4, 5, 6}, {7, 0, 8}};
     private int[][] blocksOutOfPosition = new int[][]{{8, 1, 3}, {4, 0, 2}, {7, 6, 5}};
 
     @Test
@@ -47,6 +45,24 @@ public class BoardTest {
                 .collect(toList());
 
         neighbors.forEach(System.out::println);
+        assertEquals(2, neighbors.size());
     }
 
+    @Test
+    public void middleEmptyBlockHas4NextSteps() throws Exception {
+        final Board board = new Board(new int[][]{{1, 2, 3}, {4, 0, 5}, {7, 8, 6}});
+
+        final List<Board> neighbors = StreamSupport.stream(board.neighbors().spliterator(), false)
+                .collect(toList());
+
+        neighbors.forEach(System.out::println);
+        assertEquals(4, neighbors.size());
+    }
+
+    @Test
+    public void twinNode() throws Exception {
+        final Board board = new Board(new int[][]{{1, 0}, {3, 2}});
+        assertEquals(new Board(new int[][]{{3, 0}, {1, 2}}), board.twin());
+
+    }
 }

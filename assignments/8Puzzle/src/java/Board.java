@@ -1,10 +1,8 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
-import static java.util.Arrays.*;
 import static java.util.Arrays.copyOf;
 
 public class Board {
@@ -28,7 +26,11 @@ public class Board {
 
     public Board(int[] twinBlocks) {
         this.blocks = twinBlocks;
-        dimension = (int)Math.sqrt(twinBlocks.length);
+        dimension = (int) Math.sqrt(twinBlocks.length);
+        for (int i = 0; i < twinBlocks.length; i++) {
+            if(twinBlocks[i] == 0)
+                emptyBlockIdx = i;
+        }
     }
 
     private int index(int row, int col) {
@@ -80,19 +82,18 @@ public class Board {
     public Board twin() {
         List<Integer> excludedValues = new ArrayList<>();
         excludedValues.add(0);
-        final int from = pickARandomNoEmptyBlock(excludedValues);
-        excludedValues.add(from);
-        final int to = pickARandomNoEmptyBlock(excludedValues);
-        final int[] twinBlocks = switchBlocks(from, to);
+        final int fromIdx = pickARandomNoEmptyBlock(excludedValues);
+        excludedValues.add(blocks[fromIdx]);
+        final int toIdx = pickARandomNoEmptyBlock(excludedValues);
+        final int[] twinBlocks = switchBlocks(fromIdx, toIdx);
         return new Board(twinBlocks);
     }
 
     protected int pickARandomNoEmptyBlock(List<Integer> excludedValues) {
-        final OptionalInt first = stream(blocks)
-                .filter(b -> !excludedValues.contains(b))
-                .findFirst();
-        return first.getAsInt();
-
+        for (int i = 0; i < blocks.length; i++) {
+            if(!excludedValues.contains(blocks[i])) return i;
+        }
+        throw new IllegalStateException();
     }
 
     private int[] switchBlocks(int fromIdx, int toIdx) {
@@ -131,10 +132,10 @@ public class Board {
     private List<Integer> getNeighbors(int emptyBlockIdx) {
         List<Integer> neighbors = new ArrayList<>();
 
-        if (emptyBlockIdx - 1 >= 0) neighbors.add(emptyBlockIdx - 1);
-        if (emptyBlockIdx - dimension >= 0) neighbors.add(emptyBlockIdx - dimension);
-        if (emptyBlockIdx + 1 < blocks.length) neighbors.add(emptyBlockIdx + 1);
-        if (emptyBlockIdx + dimension < blocks.length) neighbors.add(emptyBlockIdx + dimension);
+        if (emptyBlockIdx % dimension > 0) neighbors.add(emptyBlockIdx - 1);
+        if (emptyBlockIdx % dimension < dimension - 1) neighbors.add(emptyBlockIdx + 1);
+        if (emptyBlockIdx / dimension > 0) neighbors.add(emptyBlockIdx - dimension);
+        if (emptyBlockIdx / dimension < dimension - 1) neighbors.add(emptyBlockIdx + dimension);
 
         return neighbors;
     }
