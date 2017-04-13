@@ -1,9 +1,14 @@
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
 
+import java.awt.*;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Set;
+
+import static edu.princeton.cs.algs4.StdDraw.setPenColor;
+import static edu.princeton.cs.algs4.StdDraw.setPenRadius;
 
 public class KdTree {
     static final Byte V = 0;
@@ -47,9 +52,7 @@ public class KdTree {
                 } else {
                     node = node.right;
                 }
-
             }
-
         }
     }
 
@@ -80,7 +83,7 @@ public class KdTree {
     private Set<Point2D> subRange(Node root, RectHV rect) {
         Set<Point2D> points = new HashSet<>();
 
-        if(root == null) return points;
+        if (root == null) return points;
 
         if (rect.contains(root.key)) points.add(root.key);
 
@@ -91,6 +94,47 @@ public class KdTree {
             points.addAll(subRange(root.right, rect));
 
         return points;
+    }
+
+    public void draw(){
+        if(isEmpty()) return;
+
+        LinkedList<Node> nodesToDraw = new LinkedList<>();
+        nodesToDraw.add(root);
+        while(!nodesToDraw.isEmpty()){
+            System.out.println("size " + nodesToDraw.size());
+            Node node = nodesToDraw.remove();
+            draw(node);
+
+            if(node.left != null){
+                 nodesToDraw.add(node.left);
+            }
+
+            if(node.right != null){
+                nodesToDraw.add(node.right);
+            }
+        }
+    }
+
+    private void draw(Node node) {
+        System.out.println("drawing node " + node);
+        setPenColor(Color.BLACK);
+        setPenRadius(0.008);
+        node.key.draw();
+
+        setPenRadius(0.002);
+        Point2D begin = null;
+        Point2D end = null;
+        if(node.split == V) {
+            setPenColor(Color.RED);
+            begin = new Point2D(node.key.x(), node.rect.ymin());
+            end = new Point2D(node.key.x(), node.rect.ymax());
+        }  else {
+            begin = new Point2D(node.rect.xmin(), node.key.y());
+            end = new Point2D(node.rect.xmax(), node.key.y());
+        }
+
+        begin.drawTo(end);
     }
 
     RectHV leftRect(Node node) {
