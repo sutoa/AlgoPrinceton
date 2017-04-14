@@ -2,13 +2,14 @@ import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
 
 import java.awt.*;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.List;
 
+import static edu.princeton.cs.algs4.Point2D.X_ORDER;
+import static edu.princeton.cs.algs4.Point2D.Y_ORDER;
 import static edu.princeton.cs.algs4.StdDraw.setPenColor;
 import static edu.princeton.cs.algs4.StdDraw.setPenRadius;
+import static java.util.Collections.reverse;
 
 public class KdTree {
     static final Byte V = 0;
@@ -61,7 +62,7 @@ public class KdTree {
 
         Node node = root;
         while (node != null) {
-            if (node.key.equals(p))
+            if (node.p.equals(p))
                 return true;
 
             if (goLeft(node, p)) {
@@ -73,65 +74,116 @@ public class KdTree {
         return false;
     }
 
-    // all points that are inside the rectangle
     public Iterable<Point2D> range(RectHV rect) {
         Objects.requireNonNull(rect);
-
-        return subRange(root, rect);
+        return findPointsInRectangleUnderRoot(root, rect);
     }
 
-    private Set<Point2D> subRange(Node root, RectHV rect) {
+    private Set<Point2D> findPointsInRectangleUnderRoot(Node root, RectHV rect) {
         Set<Point2D> points = new HashSet<>();
 
         if (root == null) return points;
 
-        if (rect.contains(root.key)) points.add(root.key);
+        if (rect.contains(root.p)) points.add(root.p);
 
         if (rect.intersects(leftRect(root)))
-            points.addAll(subRange(root.left, rect));
+            points.addAll(findPointsInRectangleUnderRoot(root.left, rect));
 
         if (rect.intersects(rightRect(root)))
-            points.addAll(subRange(root.right, rect));
+            points.addAll(findPointsInRectangleUnderRoot(root.right, rect));
 
         return points;
     }
 
-    public void draw(){
-        if(isEmpty()) return;
+    public void draw() {
+        if (isEmpty()) return;
 
         LinkedList<Node> nodesToDraw = new LinkedList<>();
         nodesToDraw.add(root);
-        while(!nodesToDraw.isEmpty()){
-            System.out.println("size " + nodesToDraw.size());
+        while (!nodesToDraw.isEmpty()) {
             Node node = nodesToDraw.remove();
             draw(node);
 
-            if(node.left != null){
-                 nodesToDraw.add(node.left);
+            if (node.left != null) {
+                nodesToDraw.add(node.left);
             }
 
-            if(node.right != null){
+            if (node.right != null) {
                 nodesToDraw.add(node.right);
             }
         }
     }
 
+    public Point2D nearest(Point2D p) {
+        final NearestDistantHolder nearestDistantHolder = new NearestDistantHolder(Double.MAX_VALUE, null);
+        findNearestFromAllPointsUnderRoot(root, p, nearestDistantHolder);
+        return nearestDistantHolder.p;
+    }
+
+    private void findNearestFromAllPointsUnderRoot(Node root,
+                                                   Point2D queryP,
+                                                   NearestDistantHolder nearestDistantHolder) {
+        if(root == null) return;
+
+        checkIfNodeIsCloser(root, queryP, nearestDistantHolder);
+
+        List<Node> nodesToCheck = orderNodesToCheck(root, queryP);
+
+        if(nodesToCheck.size() > 0)
+            findNearestFromAllPointsUnderRoot(nodesToCheck.get(0), queryP, nearestDistantHolder);
+        if (nodesToCheck.size() == 2 && nearestPointsMayExist(queryP, nearestDistantHolder, nodesToCheck.get(1))) {
+            findNearestFromAllPointsUnderRoot(nodesToCheck.get(1), queryP, nearestDistantHolder);
+        }
+
+    }
+
+    private List<Node> orderNodesToCheck(Node root, Point2D queryP) {
+        List<Node> nodesToCheck = new ArrayList<>();
+        if(root.right != null) nodesToCheck.add(root.right);
+        if(root.left != null) nodesToCheck.add(root.left);
+
+        if(nodesToCheck.size() < 2) return nodesToCheck;
+
+        if (root.split == V) {
+            if (X_ORDER.compare(queryP, root.p) < 0) {
+                reverse(nodesToCheck);
+            }
+        } else {
+            if (Y_ORDER.compare(queryP, root.p) < 0) {
+                reverse(nodesToCheck);
+            }
+        }
+        return nodesToCheck;
+    }
+
+    private boolean nearestPointsMayExist(Point2D queryP, NearestDistantHolder nearestDistantHolder, Node node) {
+        return node.rect.distanceTo(queryP) < nearestDistantHolder.minDist;
+    }
+
+
+    private void checkIfNodeIsCloser(Node root, Point2D queryP, NearestDistantHolder nearestDistantHolder) {
+        final double dist = root.p.distanceTo(queryP);
+        if (dist < nearestDistantHolder.minDist) {
+            nearestDistantHolder.minDist = dist;
+            nearestDistantHolder.p = root.p;
+        }
+    }
+
     private void draw(Node node) {
-        System.out.println("drawing node " + node);
         setPenColor(Color.BLACK);
         setPenRadius(0.008);
-        node.key.draw();
+        node.p.draw();
 
         setPenRadius(0.002);
         Point2D begin = null;
         Point2D end = null;
-        if(node.split == V) {
+        if (node.split == V) {
             setPenColor(Color.RED);
-            begin = new Point2D(node.key.x(), node.rect.ymin());
-            end = new Point2D(node.key.x(), node.rect.ymax());
-        }  else {
-            begin = new Point2D(node.rect.xmin(), node.key.y());
-            end = new Point2D(node.rect.xmax(), node.key.y());
+            begin = new Point2D(node.p.x(), node.rect.ymin());
+            end = new Point2D(node.p.x(), node.rect.ymax());
+        } else {
+            begin = new Point2D(node.rect.xmin(), node.p.y());
+            end = new Point2D(node.rect.xmax(), node.p.y());
         }
 
         begin.drawTo(end);
@@ -139,17 +191,17 @@ public class KdTree {
 
     RectHV leftRect(Node node) {
         if (node.split == V) {
-            return new RectHV(node.rect.xmin(), node.rect.ymin(), node.key.x(), node.rect.ymax());
+            return new RectHV(node.rect.xmin(), node.rect.ymin(), node.p.x(), node.rect.ymax());
         } else {
-            return new RectHV(node.rect.xmin(), node.rect.ymin(), node.rect.xmax(), node.key.y());
+            return new RectHV(node.rect.xmin(), node.rect.ymin(), node.rect.xmax(), node.p.y());
         }
     }
 
     RectHV rightRect(Node node) {
         if (node.split == V) {
-            return new RectHV(node.key.x(), node.rect.ymin(), node.rect.xmax(), node.rect.ymax());
+            return new RectHV(node.p.x(), node.rect.ymin(), node.rect.xmax(), node.rect.ymax());
         } else {
-            return new RectHV(node.rect.xmin(), node.key.y(), node.rect.xmax(), node.rect.ymax());
+            return new RectHV(node.rect.xmin(), node.p.y(), node.rect.xmax(), node.rect.ymax());
         }
     }
 
@@ -159,23 +211,33 @@ public class KdTree {
 
     boolean goLeft(Node node, Point2D p) {
         if (node.split == V)
-            return Point2D.X_ORDER.compare(p, node.key) < 0;
+            return X_ORDER.compare(p, node.p) < 0;
         else
-            return Point2D.Y_ORDER.compare(p, node.key) < 0;
+            return Y_ORDER.compare(p, node.p) < 0;
     }
 
     static class Node {
-        final Point2D key;
+        final Point2D p;
         final Byte split;
         RectHV rect;
         Node left;
         Node right;
 
-        Node(Point2D key, Byte split, RectHV rect) {
-            this.key = key;
+        Node(Point2D p, Byte split, RectHV rect) {
+            this.p = p;
             this.split = split;
             this.rect = rect;
         }
 
+    }
+
+    private static class NearestDistantHolder {
+        private double minDist;
+        private Point2D p;
+
+        public NearestDistantHolder(double minDist, Point2D p) {
+            this.minDist = minDist;
+            this.p = p;
+        }
     }
 }

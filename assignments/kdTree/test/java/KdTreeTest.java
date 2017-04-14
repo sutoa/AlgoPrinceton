@@ -37,11 +37,11 @@ public class KdTreeTest {
     public void insertsSmallerXToTheLeftOfRoot() throws Exception {
         buildTree();
 
-        assertEquals(kdTree.root.key, p1);
-        assertEquals(kdTree.root.left.key, p2);
-        assertEquals(kdTree.root.left.left.key, p3);
-        assertEquals(kdTree.root.left.right.key, p4);
-        assertEquals(kdTree.root.right.key, p5);
+        assertEquals(kdTree.root.p, p1);
+        assertEquals(kdTree.root.left.p, p2);
+        assertEquals(kdTree.root.left.left.p, p3);
+        assertEquals(kdTree.root.left.right.p, p4);
+        assertEquals(kdTree.root.right.p, p5);
 
     }
 
@@ -102,5 +102,13 @@ public class KdTreeTest {
         assertTrue(points.contains(p1));
         assertTrue(points.contains(p2));
         assertTrue(points.contains(p3));
+    }
+
+    @Test
+    public void findsClosestPoint() throws Exception {
+        buildTree();
+        final Point2D nearest = kdTree.nearest(new Point2D(0.19, 0.31));
+        assertEquals(p3, nearest);
+
     }
 }
